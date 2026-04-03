@@ -391,30 +391,64 @@
             }
         });
     }
-
     function generatePDF() {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF();
         const m = document.getElementById('monthFilter').value;
         const uName = document.getElementById('empName').value || 'N/A';
         const uNo = document.getElementById('empNo').value || 'N/A';
-        let tableData = [];
-        logs.filter(l => l.month === m).forEach(e => { tableData.push([e.date, e.shift, `${e.in}-${e.out||'..'}`, e.hrs, e.ot, e.late+'m']); });
         
-        doc.setFontSize(18); doc.setTextColor(0, 123, 255);
-        doc.text("Attendance Report", 14, 20);
-        doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+        let tableData = [];
+        
+        // Filter and prepare data
+        logs.filter(l => l.month === m).forEach(e => {
+            // Tags ටික text එකක් විදිහට එකතු කරගන්නවා
+            let tagText = "";
+            if (e.isHoliday) tagText += " [HOLIDAY]";
+            if (e.isSC) tagText += " [S.CHANGE]";
+            if (e.isLeave) tagText += " [LEAVE]";
+            if (e.isOffWork) tagText += " [OFF-DAY]";
+
+            tableData.push([
+                e.date + tagText, // Date එකත් එක්කම tag එක පේන්න දානවා
+                e.shift, 
+                `${e.in}-${e.out||'..'}`, 
+                e.hrs, 
+                e.ot, 
+                e.late+'m'
+            ]);
+        });
+        
+        doc.setFontSize(18); 
+        doc.setTextColor(0, 123, 255);
+        doc.text("Macktiles Attendance Report", 14, 20);
+        
+        doc.setFontSize(11); 
+        doc.setTextColor(0, 0, 0);
         doc.text(`Employee: ${uName} | No: ${uNo} | Month: ${m}`, 14, 30);
         
-        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 35, theme: 'grid' });
+        // Table එක generate කරන තැන
+        doc.autoTable({ 
+            head: [['Date & Tags', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], 
+            body: tableData, 
+            startY: 35, 
+            theme: 'grid',
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [0, 123, 255] }
+        });
         
         const pageCount = doc.internal.getNumberOfPages();
         for(let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
-            doc.setFontSize(10); doc.setTextColor(150);
+            doc.setFontSize(10); 
+            doc.setTextColor(150);
             doc.text(`Developed by Nimantha Dilshan 2468 - Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.getHeight() - 10);
         }
+        
         doc.save(`Attendance_${uName}_${m}.pdf`);
     }
+
+ 
 
     function saveSettings() {
         localStorage.setItem('uName_v38', document.getElementById('empName').value);
