@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v42.0 - Nimantha Dilshan</title>
+    <title>Work Log v42.1 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -219,19 +219,12 @@
             if (entry) {
                 entry.out = timeStr;
                 let durationMins = (now.getTime() - entry.timestamp) / 60000;
-                
-                // Safety: විනාඩි 5 ට අඩු නම් කිසිම පැයක් එකතු වෙන්නේ නැහැ
-                if (durationMins < 5) {
-                    entry.hrs = 0;
-                    entry.ot = 0;
-                } else {
-                    let durHrs = durationMins / 60;
-                    entry.hrs = durHrs.toFixed(1);
-                    
+                if (durationMins < 5) { entry.hrs = 0; entry.ot = 0; } 
+                else {
+                    let durHrs = durationMins / 60; entry.hrs = durHrs.toFixed(1);
                     let calculatedOT = 0;
-                    if (entry.isHoliday || entry.isOffWork) {
-                        if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5;
-                    } else {
+                    if (entry.isHoliday || entry.isOffWork) { if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5; } 
+                    else {
                         const [outH, outM] = timeStr.split(':').map(Number);
                         const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
                         let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
@@ -303,17 +296,46 @@
     }
 
     function generatePDF() {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF(); const m = document.getElementById('monthFilter').value;
-        const uName = document.getElementById('empName').value || 'N/A'; const uNo = document.getElementById('empNo').value || 'N/A';
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF(); 
+        const filter = document.getElementById('monthFilter').value;
+        const uName = document.getElementById('empName').value || 'N/A'; 
+        const uNo = document.getElementById('empNo').value || 'N/A';
+        
+        let [year, month] = filter.split('-').map(Number);
+        let daysInMonth = new Date(year, month, 0).getDate();
         let tableData = [];
-        logs.filter(l => l.month === m).forEach(e => {
-            let tagText = ""; if (e.isHoliday) tagText += " [HOLIDAY]"; if (e.isSC) tagText += " [S.CHANGE]"; if (e.isLeave) tagText += " [LEAVE]"; if (e.isOffWork) tagText += " [OFF-DAY]";
-            tableData.push([e.date + tagText, e.shift, `${e.in}-${e.out||'..'}`, e.hrs, e.ot, e.late+'m']);
-        });
+        
+        // මාසයේ දවස් 30 ම (හෝ 31 ම) පේන්න data එකතු කරනවා
+        for(let d=1; d<=daysInMonth; d++) {
+            let dStr = `${year}-${month.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+            let dayEntries = logs.filter(l => l.date === dStr);
+            let shiftInfo = calculateShiftForDate(new Date(year, month-1, d));
+            
+            if (dayEntries.length > 0) {
+                dayEntries.forEach(l => {
+                    let tags = "";
+                    if (l.isHoliday) tags += " [HOLIDAY]";
+                    if (l.isSC) tags += " [S.CHANGE]";
+                    if (l.isOffWork) tags += " [OFF-DAY]";
+                    tableData.push([l.date + tags, l.shift, `${l.in}-${l.out||'..'}`, l.hrs, l.ot, l.late+'m']);
+                });
+            } else {
+                // වැඩ කරපු නැති දවසක් නම් (Leave හෝ Off-day එකක්)
+                let status = (shiftInfo.plan === "OFF") ? "OFF-DAY" : "LEAVE";
+                tableData.push([dStr + " [" + status + "]", status, "--", "0", "0", "0m"]);
+            }
+        }
+
         doc.setFontSize(18); doc.setTextColor(0, 123, 255); doc.text("Attendance Report", 14, 20);
-        doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.text(`Employee: ${uName} | No: ${uNo} | Month: ${m}`, 14, 30);
-        doc.autoTable({ head: [['Date & Tags', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 35, theme: 'grid', styles: { fontSize: 9 }, headStyles: { fillColor: [0, 123, 255] } });
-        doc.save(`Attendance_${uName}_${m}.pdf`);
+        doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.text(`Employee: ${uName} | No: ${uNo} | Month: ${filter}`, 14, 30);
+        
+        doc.autoTable({ 
+            head: [['Date & Status', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], 
+            body: tableData, startY: 35, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [0, 123, 255] } 
+        });
+        
+        doc.save(`Attendance_${uName}_${filter}.pdf`);
     }
 
     function saveSettings() {
@@ -323,7 +345,6 @@
         localStorage.setItem('startDay_v42', document.getElementById('cycleStartDay').value);
         updateLiveStatus();
     }
-
     function loadSettings() {
         document.getElementById('empName').value = localStorage.getItem('uName_v42') || '';
         document.getElementById('empNo').value = localStorage.getItem('uNo_v42') || '';
@@ -331,14 +352,12 @@
         document.getElementById('cycleStartDay').value = localStorage.getItem('startDay_v42') || '1';
         updateLiveStatus(); updateUI(); initMonthFilters(); initTheme();
     }
-
     function updateLiveStatus() {
         const info = calculateShiftForDate(new Date());
         document.getElementById('shift-detector').innerText = `Plan: ${info.plan}`;
         document.getElementById('expected-time').innerText = `Exp: ${info.expected} - ${info.expOut}`;
         document.getElementById('cycle-setup').style.display = (document.getElementById('shiftType').value === 'GEN') ? 'none' : 'block';
     }
-
     function updateUI() {
         document.getElementById('btnIn').disabled = (currentStatus === 'IN');
         document.getElementById('btnOut').disabled = (currentStatus === 'OUT');
@@ -346,7 +365,6 @@
         st.innerText = currentStatus === 'IN' ? "WORKING" : "OFF DUTY";
         st.style.color = currentStatus === 'IN' ? "var(--success)" : "var(--danger)";
     }
-
     function initMonthFilters() {
         const months = [...new Set(logs.map(l => l.month))].sort().reverse();
         const nowM = new Date().toLocaleDateString('en-CA').substring(0,7);
@@ -355,11 +373,9 @@
         document.getElementById('monthFilter').innerHTML = options;
         document.getElementById('lateMonthFilter').innerHTML = options;
     }
-
     function clearMonthData() { const m = document.getElementById('monthFilter').value; if(confirm(`${m} මකන්නද?`)) { logs = logs.filter(l => l.month !== m); localStorage.setItem('workData_v42', JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
     function clearAllData() { if(confirm("සම්පූර්ණ පද්ධතියම මකන්නද?")) { logs = []; localStorage.removeItem('workData_v42'); location.reload(); } }
     function showPage(p) { document.querySelectorAll('body > div').forEach(div => { if(div.id) div.classList.remove('active'); }); document.getElementById(p).classList.add('active'); initMonthFilters(); if(p === 'report-page') renderLogs(); if(p === 'late-page') renderLateTracker(); window.scrollTo(0,0); }
-
     window.onload = loadSettings;
     setInterval(updateLiveStatus, 60000);
 </script>
