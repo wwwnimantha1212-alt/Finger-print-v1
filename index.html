@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v42.1 - Nimantha Dilshan</title>
+    <title>Work Log v42.2 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -142,7 +142,6 @@
         const next = current === 'light' ? 'dark' : 'light';
         setTheme(next);
     }
-
     function setTheme(theme) {
         document.body.setAttribute('data-theme', theme);
         localStorage.setItem('theme_preference', theme);
@@ -150,7 +149,6 @@
         if(charts.work) renderLogs();
         if(charts.late) renderLateTracker();
     }
-
     function initTheme() {
         const saved = localStorage.getItem('theme_preference');
         if(saved) setTheme(saved);
@@ -228,7 +226,15 @@
                         const [outH, outM] = timeStr.split(':').map(Number);
                         const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
                         let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
-                        if (entry.expOut === "06:00" && extraMins < -600) extraMins += 1440;
+                        
+                        // FIXED NIGHT SHIFT OT LOGIC
+                        if (entry.expOut === "06:00") {
+                            if (outH >= 16 && extraMins < 0) { extraMins = 0; } 
+                            else if (extraMins < -600) { extraMins += 1440; }
+                        } else if (extraMins < -600) {
+                            extraMins += 1440;
+                        }
+
                         if (extraMins >= 60) calculatedOT = Math.floor(extraMins / 30) * 0.5;
                     }
                     entry.ot = parseFloat(calculatedOT).toFixed(1);
@@ -296,45 +302,28 @@
     }
 
     function generatePDF() {
-        const { jsPDF } = window.jspdf; 
-        const doc = new jsPDF(); 
-        const filter = document.getElementById('monthFilter').value;
-        const uName = document.getElementById('empName').value || 'N/A'; 
-        const uNo = document.getElementById('empNo').value || 'N/A';
-        
+        const { jsPDF } = window.jspdf; const doc = new jsPDF(); const filter = document.getElementById('monthFilter').value;
+        const uName = document.getElementById('empName').value || 'N/A'; const uNo = document.getElementById('empNo').value || 'N/A';
         let [year, month] = filter.split('-').map(Number);
         let daysInMonth = new Date(year, month, 0).getDate();
         let tableData = [];
-        
-        // මාසයේ දවස් 30 ම (හෝ 31 ම) පේන්න data එකතු කරනවා
         for(let d=1; d<=daysInMonth; d++) {
             let dStr = `${year}-${month.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
             let dayEntries = logs.filter(l => l.date === dStr);
             let shiftInfo = calculateShiftForDate(new Date(year, month-1, d));
-            
             if (dayEntries.length > 0) {
                 dayEntries.forEach(l => {
-                    let tags = "";
-                    if (l.isHoliday) tags += " [HOLIDAY]";
-                    if (l.isSC) tags += " [S.CHANGE]";
-                    if (l.isOffWork) tags += " [OFF-DAY]";
+                    let tags = ""; if (l.isHoliday) tags += " [HOLIDAY]"; if (l.isSC) tags += " [S.CHANGE]"; if (l.isOffWork) tags += " [OFF-DAY]";
                     tableData.push([l.date + tags, l.shift, `${l.in}-${l.out||'..'}`, l.hrs, l.ot, l.late+'m']);
                 });
             } else {
-                // වැඩ කරපු නැති දවසක් නම් (Leave හෝ Off-day එකක්)
                 let status = (shiftInfo.plan === "OFF") ? "OFF-DAY" : "LEAVE";
                 tableData.push([dStr + " [" + status + "]", status, "--", "0", "0", "0m"]);
             }
         }
-
         doc.setFontSize(18); doc.setTextColor(0, 123, 255); doc.text("Attendance Report", 14, 20);
         doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.text(`Employee: ${uName} | No: ${uNo} | Month: ${filter}`, 14, 30);
-        
-        doc.autoTable({ 
-            head: [['Date & Status', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], 
-            body: tableData, startY: 35, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [0, 123, 255] } 
-        });
-        
+        doc.autoTable({ head: [['Date & Status', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 35, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [0, 123, 255] } });
         doc.save(`Attendance_${uName}_${filter}.pdf`);
     }
 
