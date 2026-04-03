@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v42.2 - Nimantha Dilshan</title>
+    <title>Work Log v42.3 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -114,7 +114,7 @@
             <div class="summary-item">Days Worked<br><b id="totalDays">0</b></div>
             <div class="summary-item">Leaves<br><b id="totalLeaves">0</b></div>
             <div class="summary-item">Holidays<br><b id="totalHols">0</b></div>
-            <div class="summary-item">Total OT<br><b id="finalOT">0</b>h</div>
+            <div class="summary-item">Total OT<br><b id="finalOT">0</b></div>
         </div>
         <button class="btn-nav" style="background: #17a2b8; margin-bottom:10px;" onclick="generatePDF()">Download PDF Report</button>
         <div class="table-scroll-area">
@@ -217,25 +217,41 @@
             if (entry) {
                 entry.out = timeStr;
                 let durationMins = (now.getTime() - entry.timestamp) / 60000;
-                if (durationMins < 5) { entry.hrs = 0; entry.ot = 0; } 
-                else {
-                    let durHrs = durationMins / 60; entry.hrs = durHrs.toFixed(1);
+                
+                // 5 Minute Safety
+                if (durationMins < 5) {
+                    entry.hrs = 0;
+                    entry.ot = 0;
+                } else {
+                    let durHrs = durationMins / 60;
+                    entry.hrs = durHrs.toFixed(1);
+                    
                     let calculatedOT = 0;
-                    if (entry.isHoliday || entry.isOffWork) { if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5; } 
-                    else {
+                    if (entry.isHoliday || entry.isOffWork) {
+                        if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5;
+                    } else {
                         const [outH, outM] = timeStr.split(':').map(Number);
                         const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
-                        let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
                         
-                        // FIXED NIGHT SHIFT OT LOGIC
+                        let actualOutTotal = (outH * 60) + outM;
+                        let expectedOutTotal = (exOutH * 60) + exOutM;
+                        
+                        let extraMins = actualOutTotal - expectedOutTotal;
+
+                        // FIX: Night shift (Exp Out 06:00) එකකදී හවසම අවුට් වුණොත් (16:00-23:59 අතර)
                         if (entry.expOut === "06:00") {
-                            if (outH >= 16 && extraMins < 0) { extraMins = 0; } 
-                            else if (extraMins < -600) { extraMins += 1440; }
+                            if (outH >= 16) { 
+                                extraMins = 0; // කලින් අවුට් වුණා කියලා සලකනවා
+                            } else if (extraMins < -600) {
+                                extraMins += 1440; // ඇත්තටම පහුවදා පාන්දර අවුට් වුණොත්
+                            }
                         } else if (extraMins < -600) {
                             extraMins += 1440;
                         }
 
-                        if (extraMins >= 60) calculatedOT = Math.floor(extraMins / 30) * 0.5;
+                        if (extraMins >= 60) {
+                            calculatedOT = Math.floor(extraMins / 30) * 0.5;
+                        }
                     }
                     entry.ot = parseFloat(calculatedOT).toFixed(1);
                 }
