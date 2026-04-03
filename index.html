@@ -250,29 +250,47 @@
                 isOffWork: (actualShift === "OFF"), month: dateStr.substring(0,7), hrs: 0, ot: 0, expOut: expOut 
             });
             currentStatus = 'IN';
-        } else {
+               } else {
             let entry = logs.find(l => l.out === null);
             if (entry) {
                 entry.out = timeStr;
                 let d1 = new Date(entry.date + " " + entry.in); 
                 let d2 = new Date(dateStr + " " + entry.out);
-                let dur = (d2 - d1) / 3600000; if (dur < 0) dur += 24;
+                
+                // දවස් මාරු වන Shift (Night shift) සඳහා කාලය නිවැරදි කිරීම
+                let dur = (d2 - d1) / 3600000; 
+                if (dur < 0) dur += 24;
                 entry.hrs = dur.toFixed(1); 
                 
                 let calculatedOT = 0;
+
                 if (entry.isHoliday || entry.isOffWork) {
-                    calculatedOT = dur;
+                    // නිවාඩු දවසක වුණත් අවම විනාඩි 30 ක් වත් වැඩ කර තිබිය යුතුයි OT වැටෙන්න
+                    if (dur >= 0.5) { 
+                        calculatedOT = Math.floor(dur / 0.5) * 0.5;
+                    } else {
+                        calculatedOT = 0;
+                    }
                 } else {
+                    // සාමාන්‍ය දවසක OT ගණනය කිරීම
                     const [outH, outM] = timeStr.split(':').map(Number);
                     const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
-                    let extraMins = (outH * 60 + outM) - (exOutH * 60);
+                    
+                    let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
+                    
+                    // Night shift එකක් නම් සහ පාන්දර අවුට් වුණොත් (e.g. 06:00)
                     if (entry.expOut === "06:00" && extraMins < -600) extraMins += 1440;
-                    if (extraMins >= 60) calculatedOT = Math.floor(extraMins / 30) * 0.5;
+
+                    // පැයකට වඩා වැඩි නම් පමණක් පැය බාගයේ කොටස් වලට OT එකතු වේ
+                    if (extraMins >= 60) {
+                        calculatedOT = Math.floor(extraMins / 30) * 0.5;
+                    }
                 }
                 entry.ot = parseFloat(calculatedOT).toFixed(1);
             }
             currentStatus = 'OUT';
         }
+
         localStorage.setItem('workData_v38', JSON.stringify(logs));
         localStorage.setItem('status_v38', currentStatus);
         document.getElementById('isHoliday').checked = false;
