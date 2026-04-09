@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v42.3 - Nimantha Dilshan</title>
+    <title>Work Log v43.0 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -33,8 +33,11 @@
         .tag-ot { background: var(--success); color: white; }
         .tag-off { background: #e83e8c; color: white; }
         .tag-sc { background: var(--purple); color: white; }
-        #home-page, #report-page, #late-page { display: none; }
+        
+        /* Navigation and Screen control */
+        #setup-page, #home-page, #report-page, #late-page { display: none; }
         .active { display: block !important; }
+        
         footer { text-align: center; color: #888; font-size: 12px; margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); }
         .shift-info-panel { background: rgba(0, 123, 255, 0.1); padding: 10px; border-radius: 8px; border-left: 5px solid var(--primary); margin: 10px 0; }
         .holiday-box { display: flex; align-items: center; background: rgba(255, 193, 7, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; gap: 10px; border: 1px solid var(--warning); }
@@ -43,19 +46,36 @@
         .summary-item b { font-size: 16px; color: var(--primary); }
         .chart-container { position: relative; margin: auto; height: 220px; width: 100%; }
         .theme-switch { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        
+        .welcome-msg { font-size: 24px; font-weight: bold; color: var(--primary); text-align: center; margin-bottom: 20px; }
+        .emp-badge { font-size: 14px; color: #666; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body data-theme="light">
 
 <div class="theme-switch" onclick="toggleTheme()" id="themeBtn">🌙</div>
 
-<div id="home-page" class="active">
+<div id="setup-page">
+    <div class="card" style="margin-top: 100px; text-align: center;">
+        <div class="welcome-msg">Welcome!</div>
+        <p style="font-size: 14px; color: #777;">Please enter your details to get started.</p>
+        <input type="text" id="setupName" placeholder="Your Full Name">
+        <input type="text" id="setupNo" placeholder="Employee Number (e.g. 2468)">
+        <button class="btn-nav" style="margin-top: 15px; height: 55px;" onclick="completeSetup()">Save & Start</button>
+    </div>
+</div>
+
+<div id="home-page">
     <div class="card" style="margin-top: 30px;">
-        <div style="display:flex; gap:8px;">
-            <input type="text" id="empName" placeholder="Name" oninput="saveSettings()">
-            <input type="text" id="empNo" placeholder="Emp No" oninput="saveSettings()">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <b style="font-size: 18px;" id="dispName">N/A</b>
+                <span class="emp-badge" id="dispNo">ID: #0000</span>
+            </div>
+            <button onclick="editProfile()" style="width: auto; padding: 5px 10px; font-size: 12px; background: none; border: 1px solid var(--border); color: #888;">Edit</button>
         </div>
     </div>
+
     <div class="card">
         <h3 style="margin:0 0 10px 0;">Shift Configuration</h3>
         <select id="shiftType" onchange="saveSettings()">
@@ -137,6 +157,41 @@
     let currentStatus = localStorage.getItem('status_v42') || 'OUT';
     let charts = { work: null, late: null };
 
+    // Setup Logic
+    function checkSetup() {
+        const uName = localStorage.getItem('uName_v42');
+        if (!uName) {
+            showPage('setup-page');
+        } else {
+            showPage('home-page');
+            document.getElementById('dispName').innerText = uName;
+            document.getElementById('dispNo').innerText = "ID: #" + (localStorage.getItem('uNo_v42') || '0000');
+        }
+    }
+
+    function completeSetup() {
+        const name = document.getElementById('setupName').value;
+        const no = document.getElementById('setupNo').value;
+        if (name && no) {
+            localStorage.setItem('uName_v42', name);
+            localStorage.setItem('uNo_v42', no);
+            checkSetup();
+        } else {
+            alert("Please fill all details!");
+        }
+    }
+
+    function editProfile() {
+        const newName = prompt("Enter Name:", localStorage.getItem('uName_v42'));
+        const newNo = prompt("Enter ID No:", localStorage.getItem('uNo_v42'));
+        if(newName && newNo) {
+            localStorage.setItem('uName_v42', newName);
+            localStorage.setItem('uNo_v42', newNo);
+            checkSetup();
+        }
+    }
+
+    // Theme Logic
     function toggleTheme() {
         const current = document.body.getAttribute('data-theme');
         const next = current === 'light' ? 'dark' : 'light';
@@ -217,41 +272,22 @@
             if (entry) {
                 entry.out = timeStr;
                 let durationMins = (now.getTime() - entry.timestamp) / 60000;
-                
-                // 5 Minute Safety
-                if (durationMins < 5) {
-                    entry.hrs = 0;
-                    entry.ot = 0;
-                } else {
+                if (durationMins < 5) { entry.hrs = 0; entry.ot = 0; } 
+                else {
                     let durHrs = durationMins / 60;
                     entry.hrs = durHrs.toFixed(1);
-                    
                     let calculatedOT = 0;
                     if (entry.isHoliday || entry.isOffWork) {
                         if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5;
                     } else {
                         const [outH, outM] = timeStr.split(':').map(Number);
                         const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
-                        
-                        let actualOutTotal = (outH * 60) + outM;
-                        let expectedOutTotal = (exOutH * 60) + exOutM;
-                        
-                        let extraMins = actualOutTotal - expectedOutTotal;
-
-                        // FIX: Night shift (Exp Out 06:00) එකකදී හවසම අවුට් වුණොත් (16:00-23:59 අතර)
+                        let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
                         if (entry.expOut === "06:00") {
-                            if (outH >= 16) { 
-                                extraMins = 0; // කලින් අවුට් වුණා කියලා සලකනවා
-                            } else if (extraMins < -600) {
-                                extraMins += 1440; // ඇත්තටම පහුවදා පාන්දර අවුට් වුණොත්
-                            }
-                        } else if (extraMins < -600) {
-                            extraMins += 1440;
-                        }
-
-                        if (extraMins >= 60) {
-                            calculatedOT = Math.floor(extraMins / 30) * 0.5;
-                        }
+                            if (outH >= 16) { extraMins = 0; } 
+                            else if (extraMins < -600) { extraMins += 1440; }
+                        } else if (extraMins < -600) { extraMins += 1440; }
+                        if (extraMins >= 60) calculatedOT = Math.floor(extraMins / 30) * 0.5;
                     }
                     entry.ot = parseFloat(calculatedOT).toFixed(1);
                 }
@@ -319,7 +355,7 @@
 
     function generatePDF() {
         const { jsPDF } = window.jspdf; const doc = new jsPDF(); const filter = document.getElementById('monthFilter').value;
-        const uName = document.getElementById('empName').value || 'N/A'; const uNo = document.getElementById('empNo').value || 'N/A';
+        const uName = localStorage.getItem('uName_v42') || 'N/A'; const uNo = localStorage.getItem('uNo_v42') || 'N/A';
         let [year, month] = filter.split('-').map(Number);
         let daysInMonth = new Date(year, month, 0).getDate();
         let tableData = [];
@@ -344,18 +380,14 @@
     }
 
     function saveSettings() {
-        localStorage.setItem('uName_v42', document.getElementById('empName').value);
-        localStorage.setItem('uNo_v42', document.getElementById('empNo').value);
         localStorage.setItem('shiftType_v42', document.getElementById('shiftType').value);
         localStorage.setItem('startDay_v42', document.getElementById('cycleStartDay').value);
         updateLiveStatus();
     }
     function loadSettings() {
-        document.getElementById('empName').value = localStorage.getItem('uName_v42') || '';
-        document.getElementById('empNo').value = localStorage.getItem('uNo_v42') || '';
         document.getElementById('shiftType').value = localStorage.getItem('shiftType_v42') || 'GEN';
         document.getElementById('cycleStartDay').value = localStorage.getItem('startDay_v42') || '1';
-        updateLiveStatus(); updateUI(); initMonthFilters(); initTheme();
+        checkSetup(); updateLiveStatus(); updateUI(); initMonthFilters(); initTheme();
     }
     function updateLiveStatus() {
         const info = calculateShiftForDate(new Date());
@@ -375,12 +407,21 @@
         const nowM = new Date().toLocaleDateString('en-CA').substring(0,7);
         if(!months.includes(nowM)) months.unshift(nowM);
         const options = months.map(m => `<option value="${m}">${m}</option>`).join('');
-        document.getElementById('monthFilter').innerHTML = options;
-        document.getElementById('lateMonthFilter').innerHTML = options;
+        const mF = document.getElementById('monthFilter');
+        const lF = document.getElementById('lateMonthFilter');
+        if(mF) mF.innerHTML = options;
+        if(lF) lF.innerHTML = options;
     }
     function clearMonthData() { const m = document.getElementById('monthFilter').value; if(confirm(`${m} මකන්නද?`)) { logs = logs.filter(l => l.month !== m); localStorage.setItem('workData_v42', JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
-    function clearAllData() { if(confirm("සම්පූර්ණ පද්ධතියම මකන්නද?")) { logs = []; localStorage.removeItem('workData_v42'); location.reload(); } }
-    function showPage(p) { document.querySelectorAll('body > div').forEach(div => { if(div.id) div.classList.remove('active'); }); document.getElementById(p).classList.add('active'); initMonthFilters(); if(p === 'report-page') renderLogs(); if(p === 'late-page') renderLateTracker(); window.scrollTo(0,0); }
+    function clearAllData() { if(confirm("සම්පූර්ණ පද්ධතියම මකන්නද?")) { logs = []; localStorage.clear(); location.reload(); } }
+    function showPage(p) { 
+        document.querySelectorAll('body > div').forEach(div => div.classList.remove('active')); 
+        document.getElementById(p).classList.add('active'); 
+        if(p === 'report-page' || p === 'late-page') initMonthFilters();
+        if(p === 'report-page') renderLogs(); 
+        if(p === 'late-page') renderLateTracker(); 
+        window.scrollTo(0,0); 
+    }
     window.onload = loadSettings;
     setInterval(updateLiveStatus, 60000);
 </script>
