@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v43.8 - Nimantha Dilshan</title>
+    <title>Work Log v43.9 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -34,11 +34,11 @@
         .tag-off { background: #e83e8c; color: white; }
         .tag-sc { background: var(--purple); color: white; }
         
-        #setup-page, #home-page, #report-page, #late-page { display: none; }
+        #setup-page, #home-page, #report-page, #late-page, #edit-page { display: none; }
         .active { display: block !important; }
         
         footer { text-align: center; color: #888; font-size: 12px; margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); }
-        .shift-info-panel { background: rgba(0, 123, 255, 0.1); padding: 10px; border-radius: 8px; border-left: 5px solid var(--primary); margin: 10px 0; }
+        .shift-info-panel { background: rgba(0, 123, 255, 0.1); padding: 12px; border-radius: 8px; border-left: 5px solid var(--primary); margin: 15px 0; }
         .reminder-box { display: flex; align-items: center; justify-content: space-between; background: rgba(111, 66, 193, 0.1); padding: 12px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--purple); }
         .holiday-box { display: flex; align-items: center; background: rgba(255, 193, 7, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; gap: 10px; border: 1px solid var(--warning); }
         .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
@@ -54,7 +54,6 @@
         input:checked + .slider { background-color: var(--purple); }
         input:checked + .slider:before { transform: translateX(21px); }
 
-        /* Setup labels */
         .setup-label { text-align: left; font-size: 12px; font-weight: bold; margin-top: 10px; display: block; color: var(--primary); }
     </style>
 </head>
@@ -65,21 +64,17 @@
 <div id="setup-page">
     <div class="card" style="margin-top: 50px; text-align: center;">
         <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">Setup Your Profile</div>
-        
         <label class="setup-label">Full Name:</label>
         <input type="text" id="setupName" placeholder="Ex: Nimantha Dilshan">
-        
         <label class="setup-label">Employee Number:</label>
         <input type="text" id="setupNo" placeholder="Ex: 2468">
-        
         <label class="setup-label">Default Shift Type:</label>
-        <select id="setupShiftType" onchange="toggleSetupCycle()">
+        <select id="setupShiftType" onchange="toggleCycleVisibility('setupShiftType', 'setup-cycle-box')">
             <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
             <option value="12A">12 Hours A (Fixed)</option>
             <option value="12B">12 Hours B (Rotary)</option>
             <option value="8H">8 Hours (NEMO)</option>
         </select>
-
         <div id="setup-cycle-box" style="display:none;">
             <label class="setup-label">Cycle Start Day:</label>
             <select id="setupCycleDay">
@@ -87,50 +82,25 @@
                 <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
             </select>
         </div>
-
         <button class="btn-nav" style="margin-top: 25px; height: 55px;" onclick="completeSetup()">Save & Get Started</button>
     </div>
 </div>
 
 <div id="home-page">
     <div class="card" style="margin-top: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <b style="font-size: 18px;" id="dispName">N/A</b><br>
+                <b style="font-size: 20px;" id="dispName">N/A</b><br>
                 <span style="font-size: 14px; color: #666;" id="dispNo">ID: #0000</span>
             </div>
-            <button onclick="editProfile()" style="width: auto; padding: 5px 10px; font-size: 12px; background: none; border: 1px solid var(--border); color: #888;">Edit Profile</button>
+            <button onclick="showPage('edit-page')" style="width: auto; padding: 8px 15px; font-size: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px;">Edit Profile</button>
         </div>
     </div>
 
     <div class="card">
-        <h3 style="margin:0 0 10px 0;">Shift Configuration</h3>
-        <select id="shiftType" onchange="saveSettings()">
-            <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
-            <option value="12A">12 Hours A (Fixed)</option>
-            <option value="12B">12 Hours B (Rotary)</option>
-            <option value="8H">8 Hours (NEMO)</option>
-        </select>
-        
-        <div id="cycle-setup" style="margin-top:10px; display:none;">
-            <label style="font-size:11px; font-weight:bold;">Cycle Start Day:</label>
-            <select id="cycleStartDay" onchange="saveSettings()">
-                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
-            </select>
-        </div>
-
-        <div class="reminder-box">
-            <span style="font-size: 14px; font-weight: bold; color: var(--purple);">Shift Reminder (5 min)</span>
-            <label class="switch">
-                <input type="checkbox" id="reminderToggle" onchange="toggleReminder()">
-                <span class="slider"></span>
-            </label>
-        </div>
-
         <div class="shift-info-panel">
-            <div id="shift-detector" style="font-weight:bold; color:var(--primary); font-size:15px;">Plan: Calculating...</div>
-            <div id="expected-time" style="font-size:13px; margin-top:3px;">Exp. In: --:--</div>
+            <div id="shift-detector" style="font-weight:bold; color:var(--primary); font-size:16px;">Plan: Calculating...</div>
+            <div id="expected-time" style="font-size:14px; margin-top:3px;">Exp. In: --:--</div>
         </div>
 
         <div class="holiday-box">
@@ -138,14 +108,56 @@
             <label for="isHoliday" style="font-weight:bold; font-size:14px;">Today is Holiday / Poya</label>
         </div>
 
-        <div id="status-display" style="text-align:center; font-weight:bold; margin: 15px 0; font-size: 22px;">OFF DUTY</div>
-        <button id="btnIn" class="btn-in" onclick="punch('IN')">PUNCH IN</button>
-        <button id="btnOut" class="btn-out" onclick="punch('OUT')">PUNCH OUT</button>
+        <div id="status-display" style="text-align:center; font-weight:bold; margin: 20px 0; font-size: 26px;">OFF DUTY</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <button id="btnIn" class="btn-in" onclick="punch('IN')">PUNCH IN</button>
+            <button id="btnOut" class="btn-out" onclick="punch('OUT')">PUNCH OUT</button>
+        </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <button class="btn-nav" onclick="showPage('late-page')">Late ⏱️</button>
             <button class="btn-nav" onclick="showPage('report-page')">Reports 📊</button>
         </div>
+    </div>
+</div>
+
+<div id="edit-page">
+    <div class="card" style="margin-top: 30px;">
+        <button class="btn-back" onclick="showPage('home-page')">← Back</button>
+        <h3 style="text-align:center; margin:15px 0;">Edit Settings</h3>
+        
+        <label class="setup-label">Name:</label>
+        <input type="text" id="editName">
+        
+        <label class="setup-label">Employee ID:</label>
+        <input type="text" id="editNo">
+        
+        <label class="setup-label">Shift Configuration:</label>
+        <select id="editShiftType" onchange="toggleCycleVisibility('editShiftType', 'edit-cycle-box')">
+            <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
+            <option value="12A">12 Hours A (Fixed)</option>
+            <option value="12B">12 Hours B (Rotary)</option>
+            <option value="8H">8 Hours (NEMO)</option>
+        </select>
+
+        <div id="edit-cycle-box" style="display:none;">
+            <label class="setup-label">Cycle Start Day:</label>
+            <select id="editCycleDay">
+                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+            </select>
+        </div>
+
+        <div class="reminder-box" style="margin-top: 20px;">
+            <span style="font-size: 14px; font-weight: bold; color: var(--purple);">Shift Reminder (5 min)</span>
+            <label class="switch">
+                <input type="checkbox" id="reminderToggle" onchange="toggleReminder()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button class="btn-nav" style="background: var(--success); margin-top: 20px;" onclick="saveEditProfile()">Save Changes</button>
     </div>
 </div>
 
@@ -165,10 +177,8 @@
 <div id="report-page">
     <div class="card" style="margin-top: 30px;">
         <button class="btn-back" onclick="showPage('home-page')">← Back</button>
-        <h3 style="text-align:center; margin:10px 0;">Monthly Performance</h3>
-        <div class="chart-container">
-            <canvas id="workChart"></canvas>
-        </div>
+        <h3 style="text-align:center; margin:10px 0;">Performance</h3>
+        <div class="chart-container"><canvas id="workChart"></canvas></div>
         <select id="monthFilter" onchange="renderLogs()" style="margin-top:10px;"></select>
         <div class="summary-grid">
             <div class="summary-item">Days Worked<br><b id="totalDays">0</b></div>
@@ -177,18 +187,8 @@
             <div class="summary-item">Total OT<br><b id="finalOT">0</b></div>
         </div>
         <button class="btn-nav" style="background: #17a2b8; margin-bottom:10px;" onclick="generatePDF()">Download PDF Report</button>
-        <div class="table-scroll-area">
-            <table id="logTable">
-                <thead><tr><th>Date</th><th>Shift</th><th>Time</th><th>Hrs</th><th>OT</th><th>Late</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div style="margin-top: 25px; text-align:center;">
-            <button onclick="clearMonthData()" style="border:1px solid var(--danger); color:var(--danger); font-size:12px; width:auto; padding:8px 20px; background:none;">🗑️ Clear Selected Month Records</button>
-        </div>
-        <div style="margin-top: 10px; text-align:center;">
-            <button onclick="resetSystem()" style="color:#999; font-size:10px; background:none; border:none; text-decoration:underline;">Reset Entire System</button>
-        </div>
+        <div class="table-scroll-area"><table id="logTable"><thead><tr><th>Date</th><th>Shift</th><th>Time</th><th>Hrs</th><th>OT</th><th>Late</th></tr></thead><tbody></tbody></table></div>
+        <div style="margin-top: 20px; text-align:center;"><button onclick="clearMonthData()" style="color:var(--danger); font-size:12px; border:1px solid var(--danger); width:auto; padding:5px 15px; background:none;">🗑️ Clear Month</button> <button onclick="resetSystem()" style="color:#999; font-size:11px; background:none; border:none; margin-left:10px;">Reset All</button></div>
     </div>
 </div>
 
@@ -209,61 +209,62 @@
         if (!settings.name) {
             showPage('setup-page');
         } else {
-            showPage('home-page');
             document.getElementById('dispName').innerText = settings.name;
             document.getElementById('dispNo').innerText = "ID: #" + (settings.no || '0000');
-            if(settings.shiftType) document.getElementById('shiftType').value = settings.shiftType;
-            if(settings.startDay !== undefined) document.getElementById('cycleStartDay').value = settings.startDay;
+            // Load Edit Profile Inputs
+            document.getElementById('editName').value = settings.name;
+            document.getElementById('editNo').value = settings.no;
+            document.getElementById('editShiftType').value = settings.shiftType || 'GEN';
+            document.getElementById('editCycleDay').value = settings.startDay || '1';
             document.getElementById('reminderToggle').checked = settings.reminderOn || false;
+            toggleCycleVisibility('editShiftType', 'edit-cycle-box');
+            
+            showPage('home-page');
             if(settings.reminderOn) startReminderService();
             updateLiveStatus();
         }
     }
 
-    // Setup එකේදී Cycle Day එක පෙන්වන්න/අයින් කරන්න
-    function toggleSetupCycle() {
-        const type = document.getElementById('setupShiftType').value;
-        document.getElementById('setup-cycle-box').style.display = (type === 'GEN') ? 'none' : 'block';
+    function toggleCycleVisibility(selectId, boxId) {
+        const type = document.getElementById(selectId).value;
+        document.getElementById(boxId).style.display = (type === 'GEN') ? 'none' : 'block';
     }
 
     function completeSetup() {
         const name = document.getElementById('setupName').value;
         const no = document.getElementById('setupNo').value;
-        const sType = document.getElementById('setupShiftType').value;
-        const cDay = document.getElementById('setupCycleDay').value;
-
         if (name && no) {
             const settings = {
-                name: name,
-                no: no,
-                shiftType: sType,
-                startDay: cDay,
+                name: name, no: no,
+                shiftType: document.getElementById('setupShiftType').value,
+                startDay: document.getElementById('setupCycleDay').value,
                 reminderOn: false
             };
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             checkSetup();
-        } else alert("කරුණාකර නම සහ අංකය ඇතුළත් කරන්න!");
+        } else alert("Details පුරවන්න!");
     }
 
-    function editProfile() {
+    function saveEditProfile() {
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        const newName = prompt("නම වෙනස් කරන්න:", settings.name);
-        const newNo = prompt("අංකය වෙනස් කරන්න:", settings.no);
-        if(newName && newNo) {
-            settings.name = newName; settings.no = newNo;
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-            checkSetup();
-        }
+        settings.name = document.getElementById('editName').value;
+        settings.no = document.getElementById('editNo').value;
+        settings.shiftType = document.getElementById('editShiftType').value;
+        settings.startDay = document.getElementById('editCycleDay').value;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        alert("Settings Saved!");
+        checkSetup();
     }
 
-    function resetSystem() {
-        if(confirm("මුළු ඇප් එකම Reset කරන්නද? ඔක්කොම දත්ත මැකී යනු ඇත!")) {
-            localStorage.clear();
-            location.reload();
-        }
+    function resetSystem() { if(confirm("පද්ධතිය මුළුමනින්ම Reset කරන්නද?")) { localStorage.clear(); location.reload(); } }
+
+    // --- Time Calculation & UI Update ---
+    function updateLiveStatus() {
+        const info = calculateShiftForDate(new Date());
+        document.getElementById('shift-detector').innerText = `Plan: ${info.plan}`;
+        document.getElementById('expected-time').innerText = `Expected: ${info.expected} - ${info.expOut}`;
     }
 
-    // --- Core Logic Functions (Calculate, Punch, Render) ---
     function calculateShiftForDate(targetDate) {
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
         const type = settings.shiftType || 'GEN';
@@ -302,15 +303,11 @@
         const isHol = document.getElementById('isHoliday').checked;
 
         if (type === 'IN') {
-            let actualShift = info.plan;
-            let expIn = info.expected;
-            let expOut = info.expOut;
-            let isSC = false;
+            let actualShift = info.plan; let expIn = info.expected; let expOut = info.expOut; let isSC = false;
             const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-            const sType = settings.shiftType || 'GEN';
-            if(sType === '12A' || sType === '12B') {
-                const hour = now.getHours();
-                if(hour >= 16 || hour < 4) { if(info.plan !== "NIGHT") { actualShift = "NIGHT"; expIn = "18:00"; expOut = "06:00"; isSC = true; } } 
+            if(settings.shiftType === '12A' || settings.shiftType === '12B') {
+                const h = now.getHours();
+                if(h >= 16 || h < 4) { if(info.plan !== "NIGHT") { actualShift = "NIGHT"; expIn = "18:00"; expOut = "06:00"; isSC = true; } } 
                 else { if(info.plan !== "DAY") { actualShift = "DAY"; expIn = "06:00"; expOut = "18:00"; isSC = true; } }
             }
             let lateMins = 0;
@@ -329,19 +326,15 @@
                 entry.out = timeStr;
                 let durationMins = (now.getTime() - entry.timestamp) / 60000;
                 if (durationMins >= 5) {
-                    let durHrs = durationMins / 60;
-                    entry.hrs = durHrs.toFixed(1);
+                    let durHrs = durationMins / 60; entry.hrs = durHrs.toFixed(1);
                     let calculatedOT = 0;
-                    if (entry.isHoliday || entry.isOffWork) {
-                        if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5;
-                    } else {
+                    if (entry.isHoliday || entry.isOffWork) { if (durHrs >= 0.5) calculatedOT = Math.floor(durHrs / 0.5) * 0.5; } 
+                    else {
                         const [outH, outM] = timeStr.split(':').map(Number);
                         const [exOutH, exOutM] = entry.expOut.split(':').map(Number);
                         let extraMins = (outH * 60 + outM) - (exOutH * 60 + exOutM);
-                        if (entry.expOut === "06:00") {
-                            if (outH >= 16) extraMins = 0;
-                            else if (extraMins < -600) extraMins += 1440;
-                        } else if (extraMins < -600) extraMins += 1440;
+                        if (entry.expOut === "06:00") { if (outH >= 16) extraMins = 0; else if (extraMins < -600) extraMins += 1440; } 
+                        else if (extraMins < -600) extraMins += 1440;
                         if (extraMins >= 60) calculatedOT = Math.floor(extraMins / 30) * 0.5;
                     }
                     entry.ot = parseFloat(calculatedOT).toFixed(1);
@@ -356,14 +349,11 @@
     }
 
     function renderLogs() {
-        const filter = document.getElementById('monthFilter').value;
-        if(!filter) return;
-        const tbody = document.querySelector("#logTable tbody");
-        tbody.innerHTML = "";
+        const filter = document.getElementById('monthFilter').value; if(!filter) return;
+        const tbody = document.querySelector("#logTable tbody"); tbody.innerHTML = "";
         let [year, month] = filter.split('-').map(Number);
         let daysInMonth = new Date(year, month, 0).getDate();
-        let totalOT = 0, totalDays = 0, totalHols = 0, totalLeaves = 0;
-        let l_dates = [], l_hrs = [];
+        let totalOT = 0, totalDays = 0, totalHols = 0, totalLeaves = 0, l_dates = [], l_hrs = [];
         let currentMonthLogs = [];
         for(let d=1; d<=daysInMonth; d++) {
             let dStr = `${year}-${month.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
@@ -371,8 +361,7 @@
             let shiftPlan = calculateShiftForDate(new Date(year, month-1, d)).plan;
             if (dayEntries.length > 0) {
                 dayEntries.forEach(l => {
-                    currentMonthLogs.push(l);
-                    if(l.out) { totalOT += parseFloat(l.ot); totalDays++; if(l.isHoliday) totalHols++; l_dates.push(d); l_hrs.push(parseFloat(l.hrs)); }
+                    currentMonthLogs.push(l); if(l.out) { totalOT += parseFloat(l.ot); totalDays++; if(l.isHoliday) totalHols++; l_dates.push(d); l_hrs.push(parseFloat(l.hrs)); }
                 });
             } else if (shiftPlan !== "OFF" && dStr < new Date().toLocaleDateString('en-CA')) {
                 currentMonthLogs.push({ date: dStr, shift: "LEAVE", in: "--", out: "--", hrs: 0, ot: 0, late: 0, isLeave: true });
@@ -380,27 +369,23 @@
             }
         }
         currentMonthLogs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(l => {
-            let tags = (l.isHoliday ? '<span class="tag tag-holi">HOLIDAY</span> ' : '') + (l.isSC ? '<span class="tag tag-sc">S.CHANGE</span> ' : '') + (l.isLeave ? '<span class="tag tag-leave">LEAVE</span> ' : '') + (l.isOffWork ? '<span class="tag tag-off">OFF-DAY</span> ' : '');
+            let tags = (l.isHoliday ? '<span class="tag tag-holi">H</span> ' : '') + (l.isSC ? '<span class="tag tag-sc">SC</span> ' : '') + (l.isLeave ? '<span class="tag tag-leave">L</span> ' : '') + (l.isOffWork ? '<span class="tag tag-off">OFF</span> ' : '');
             tbody.innerHTML += `<tr><td>${l.date}<br>${tags}</td><td>${l.shift}</td><td>${l.in}-${l.out||'..'}</td><td>${l.hrs}</td><td>${l.ot}</td><td>${l.late}m</td></tr>`;
         });
-        document.getElementById('totalDays').innerText = totalDays;
-        document.getElementById('totalLeaves').innerText = totalLeaves;
-        document.getElementById('totalHols').innerText = totalHols;
-        document.getElementById('finalOT').innerText = totalOT.toFixed(1);
+        document.getElementById('totalDays').innerText = totalDays; document.getElementById('totalLeaves').innerText = totalLeaves;
+        document.getElementById('totalHols').innerText = totalHols; document.getElementById('finalOT').innerText = totalOT.toFixed(1);
         if(charts.work) charts.work.destroy();
-        charts.work = new Chart(document.getElementById('workChart').getContext('2d'), { type: 'line', data: { labels: l_dates, datasets: [{ label: 'Hours', data: l_hrs, borderColor: '#007bff', backgroundColor: 'rgba(0, 123, 255, 0.1)', fill: true }] }, options: { responsive: true, maintainAspectRatio: false } });
+        charts.work = new Chart(document.getElementById('workChart').getContext('2d'), { type: 'line', data: { labels: l_dates, datasets: [{ label: 'Hrs', data: l_hrs, borderColor: '#007bff', fill: true }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
     function renderLateTracker() {
-        const filter = document.getElementById('lateMonthFilter').value;
-        if(!filter) return;
+        const filter = document.getElementById('lateMonthFilter').value; if(!filter) return;
         const monthLogs = logs.filter(l => l.month === filter && !l.isOffWork && l.late > 0);
         const totalLate = monthLogs.reduce((s, c) => s + c.late, 0);
         const balance = Math.max(0, 60 - totalLate);
         document.getElementById('lateStats').innerText = `Balance: ${balance} min`;
-        const listEl = document.getElementById('lateList');
-        listEl.innerHTML = monthLogs.length ? "" : "<p style='text-align:center;'>වාර්තා නැත.</p>";
-        monthLogs.forEach(l => { listEl.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid var(--border); font-size:13px;"><span>📅 ${l.date}</span><b style="color:red;">${l.late}m</b></div>`; });
+        const listEl = document.getElementById('lateList'); listEl.innerHTML = monthLogs.length ? "" : "<p>No records.</p>";
+        monthLogs.forEach(l => { listEl.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid var(--border);"><span>${l.date}</span><b style="color:red;">${l.late}m</b></div>`; });
         if(charts.late) charts.late.destroy();
         charts.late = new Chart(document.getElementById('lateChart').getContext('2d'), { type: 'doughnut', data: { labels: ['Used', 'Left'], datasets: [{ data: [totalLate, balance], backgroundColor: ['#dc3545', '#28a745'] }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
@@ -408,50 +393,21 @@
     function generatePDF() {
         const { jsPDF } = window.jspdf; const doc = new jsPDF(); const filter = document.getElementById('monthFilter').value;
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        const uName = settings.name || 'Not Set'; const uNo = settings.no || '0000';
-        
         doc.setFontSize(18); doc.setTextColor(0, 123, 255); doc.text("Attendance Report", 14, 20);
         doc.setFontSize(11); doc.setTextColor(0, 0, 0);
-        doc.text(`Employee Name: ${uName}`, 14, 30);
-        doc.text(`Employee ID: ${uNo}`, 14, 36);
-        doc.text(`Reporting Month: ${filter}`, 14, 42);
-        
-        let [year, month] = filter.split('-').map(Number);
-        let daysInMonth = new Date(year, month, 0).getDate();
-        let tableData = [];
-        for(let d=1; d<=daysInMonth; d++) {
-            let dStr = `${year}-${month.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
-            let dayEntries = logs.filter(l => l.date === dStr);
-            let shiftInfo = calculateShiftForDate(new Date(year, month-1, d));
-            if (dayEntries.length > 0) { 
-                dayEntries.forEach(l => {
-                    let dateDisplay = l.date;
-                    if(l.isHoliday) dateDisplay += " (H)";
-                    if(l.isSC) dateDisplay += " (S.C)";
-                    if(l.isOffWork) dateDisplay += " (OFF)";
-                    tableData.push([dateDisplay, l.shift, `${l.in} - ${l.out || '..'}`, l.hrs, l.ot, l.late + 'm']); 
-                });
-            } else { 
-                let status = (shiftInfo.plan === "OFF" ? "OFF-DAY" : "LEAVE");
-                tableData.push([dStr + (status === "OFF-DAY" ? " (OFF)" : " (L)"), status, "--", "0", "0", "0m"]); 
-            }
+        doc.text(`Employee: ${settings.name} (#${settings.no})`, 14, 30); doc.text(`Month: ${filter}`, 14, 38);
+        let [y, m] = filter.split('-').map(Number); let days = new Date(y, m, 0).getDate(); let tableData = [];
+        for(let d=1; d<=days; d++) {
+            let dStr = `${y}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+            let entries = logs.filter(l => l.date === dStr); let sInfo = calculateShiftForDate(new Date(y, m-1, d));
+            if (entries.length > 0) entries.forEach(l => {
+                let tag = (l.isHoliday?"(H) ":"") + (l.isSC?"(SC) ":"") + (l.isOffWork?"(OFF)":"");
+                tableData.push([l.date + " " + tag, l.shift, `${l.in}-${l.out||'..'}`, l.hrs, l.ot, l.late + 'm']); 
+            });
+            else { let st = (sInfo.plan==="OFF"?"(OFF)":"(L)"); tableData.push([dStr + " " + st, sInfo.plan==="OFF"?"OFF-DAY":"LEAVE", "--", "0", "0", "0m"]); }
         }
-        doc.autoTable({ 
-            head: [['Date & Tag', 'Shift', 'Time Range', 'Hrs', 'OT', 'Late']], 
-            body: tableData, 
-            startY: 48, 
-            theme: 'grid', 
-            headStyles: { fillColor: [0, 123, 255] }, 
-            styles: { fontSize: 8 },
-            didDrawPage: function(data) {
-                doc.setFontSize(10); doc.setTextColor(150);
-                let str = "Developed by Nimantha Dilshan 2468";
-                let pageSize = doc.internal.pageSize;
-                let pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
-                doc.text(str, data.settings.margin.left, pageHeight - 10);
-            }
-        });
-        doc.save(`Attendance_${uName}_${filter}.pdf`);
+        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 45, theme: 'grid', styles: {fontSize: 8}, didDrawPage: (d) => { doc.setFontSize(10); doc.text("Developed by Nimantha Dilshan 2468", d.settings.margin.left, doc.internal.pageSize.height - 10); } });
+        doc.save(`Attendance_${settings.name}_${filter}.pdf`);
     }
 
     function toggleTheme() {
@@ -459,21 +415,6 @@
         document.body.setAttribute('data-theme', next);
         localStorage.setItem('theme_preference', next);
         document.getElementById('themeBtn').innerText = next === 'light' ? '🌙' : '☀️';
-    }
-
-    function saveSettings() {
-        const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        settings.shiftType = document.getElementById('shiftType').value;
-        settings.startDay = document.getElementById('cycleStartDay').value;
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        updateLiveStatus();
-    }
-
-    function updateLiveStatus() {
-        const info = calculateShiftForDate(new Date());
-        document.getElementById('shift-detector').innerText = `Plan: ${info.plan}`;
-        document.getElementById('expected-time').innerText = `Exp: ${info.expected} - ${info.expOut}`;
-        document.getElementById('cycle-setup').style.display = (document.getElementById('shiftType').value === 'GEN') ? 'none' : 'block';
     }
 
     function updateUI() {
@@ -500,7 +441,7 @@
         document.getElementById('lateMonthFilter').innerHTML = options;
     }
 
-    function clearMonthData() { if(confirm("මෙම මාසයේ දත්ත මකන්නද?")) { const m = document.getElementById('monthFilter').value; logs = logs.filter(l => l.month !== m); localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
+    function clearMonthData() { if(confirm("Clear month data?")) { const m = document.getElementById('monthFilter').value; logs = logs.filter(l => l.month !== m); localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
 
     function toggleReminder() {
         const isChecked = document.getElementById('reminderToggle').checked;
@@ -508,9 +449,8 @@
         settings.reminderOn = isChecked;
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
         if (isChecked) {
-            if (Notification.permission !== "granted") {
-                Notification.requestPermission().then(p => { if (p === "granted") startReminderService(); else document.getElementById('reminderToggle').checked = false; });
-            } else startReminderService();
+            if (Notification.permission !== "granted") Notification.requestPermission().then(p => { if (p === "granted") startReminderService(); else document.getElementById('reminderToggle').checked = false; });
+            else startReminderService();
         } else clearInterval(reminderInterval);
     }
 
@@ -518,13 +458,11 @@
         if(reminderInterval) clearInterval(reminderInterval);
         reminderInterval = setInterval(() => {
             if (currentStatus === 'IN') return;
-            const now = new Date();
-            const info = calculateShiftForDate(now);
-            if (info.plan === "OFF") return;
-            const [expH, expM] = info.expected.split(':').map(Number);
-            const expTotal = expH * 60 + expM;
-            const nowTotal = now.getHours() * 60 + now.getMinutes();
-            if (expTotal - nowTotal === 5) sendNotification("Punch In Reminder ⏱️", `${info.plan} Shift එක තව විනාඩි 5 කින්.`);
+            const now = new Date(); const info = calculateShiftForDate(now); if (info.plan === "OFF") return;
+            const [exH, exM] = info.expected.split(':').map(Number);
+            if ((exH * 60 + exM) - (now.getHours() * 60 + now.getMinutes()) === 5) {
+                if (Notification.permission === "granted") new Notification("Shift Reminder", { body: `${info.plan} starts in 5 mins!` });
+            }
         }, 60000);
     }
 
