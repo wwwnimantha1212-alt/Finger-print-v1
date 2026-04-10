@@ -195,10 +195,12 @@
 <footer>Developed by <b>Nimantha Dilshan 2468</b></footer>
 
 <script>
+    
     const STORAGE_KEY = 'work_log_data_master';
     const STATUS_KEY = 'work_log_status_master';
     const SETTINGS_KEY = 'work_log_settings_master';
 
+    let lastNotifiedShift = ""; // මෙය script එකේ ඉහලින්ම දාන්න
     let logs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let currentStatus = localStorage.getItem(STATUS_KEY) || 'OUT';
     let charts = { work: null, late: null };
@@ -453,7 +455,7 @@
             else startReminderService();
         } else clearInterval(reminderInterval);
     }
-let lastNotifiedShift = ""; // මෙය script එකේ ඉහලින්ම දාන්න
+
 
 function startReminderService() {
     if(reminderInterval) clearInterval(reminderInterval);
