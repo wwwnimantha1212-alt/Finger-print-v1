@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v43.7 - Nimantha Dilshan</title>
+    <title>Work Log v43.8 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -53,6 +53,9 @@
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--purple); }
         input:checked + .slider:before { transform: translateX(21px); }
+
+        /* Setup labels */
+        .setup-label { text-align: left; font-size: 12px; font-weight: bold; margin-top: 10px; display: block; color: var(--primary); }
     </style>
 </head>
 <body data-theme="light">
@@ -60,12 +63,32 @@
 <div class="theme-switch" onclick="toggleTheme()" id="themeBtn">🌙</div>
 
 <div id="setup-page">
-    <div class="card" style="margin-top: 100px; text-align: center;">
-        <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">Welcome!</div>
-        <p style="font-size: 14px; color: #777;">විස්තර ලබාදී ආරම්භ කරන්න.</p>
-        <input type="text" id="setupName" placeholder="ඔයාගේ සම්පූර්ණ නම">
-        <input type="text" id="setupNo" placeholder="සේවක අංකය">
-        <button class="btn-nav" style="margin-top: 15px; height: 55px;" onclick="completeSetup()">Save & Start</button>
+    <div class="card" style="margin-top: 50px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">Setup Your Profile</div>
+        
+        <label class="setup-label">Full Name:</label>
+        <input type="text" id="setupName" placeholder="Ex: Nimantha Dilshan">
+        
+        <label class="setup-label">Employee Number:</label>
+        <input type="text" id="setupNo" placeholder="Ex: 2468">
+        
+        <label class="setup-label">Default Shift Type:</label>
+        <select id="setupShiftType" onchange="toggleSetupCycle()">
+            <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
+            <option value="12A">12 Hours A (Fixed)</option>
+            <option value="12B">12 Hours B (Rotary)</option>
+            <option value="8H">8 Hours (NEMO)</option>
+        </select>
+
+        <div id="setup-cycle-box" style="display:none;">
+            <label class="setup-label">Cycle Start Day:</label>
+            <select id="setupCycleDay">
+                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+            </select>
+        </div>
+
+        <button class="btn-nav" style="margin-top: 25px; height: 55px;" onclick="completeSetup()">Save & Get Started</button>
     </div>
 </div>
 
@@ -76,7 +99,7 @@
                 <b style="font-size: 18px;" id="dispName">N/A</b><br>
                 <span style="font-size: 14px; color: #666;" id="dispNo">ID: #0000</span>
             </div>
-            <button onclick="editProfile()" style="width: auto; padding: 5px 10px; font-size: 12px; background: none; border: 1px solid var(--border); color: #888;">Edit</button>
+            <button onclick="editProfile()" style="width: auto; padding: 5px 10px; font-size: 12px; background: none; border: 1px solid var(--border); color: #888;">Edit Profile</button>
         </div>
     </div>
 
@@ -163,6 +186,9 @@
         <div style="margin-top: 25px; text-align:center;">
             <button onclick="clearMonthData()" style="border:1px solid var(--danger); color:var(--danger); font-size:12px; width:auto; padding:8px 20px; background:none;">🗑️ Clear Selected Month Records</button>
         </div>
+        <div style="margin-top: 10px; text-align:center;">
+            <button onclick="resetSystem()" style="color:#999; font-size:10px; background:none; border:none; text-decoration:underline;">Reset Entire System</button>
+        </div>
     </div>
 </div>
 
@@ -194,15 +220,29 @@
         }
     }
 
+    // Setup එකේදී Cycle Day එක පෙන්වන්න/අයින් කරන්න
+    function toggleSetupCycle() {
+        const type = document.getElementById('setupShiftType').value;
+        document.getElementById('setup-cycle-box').style.display = (type === 'GEN') ? 'none' : 'block';
+    }
+
     function completeSetup() {
         const name = document.getElementById('setupName').value;
         const no = document.getElementById('setupNo').value;
+        const sType = document.getElementById('setupShiftType').value;
+        const cDay = document.getElementById('setupCycleDay').value;
+
         if (name && no) {
-            const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-            settings.name = name; settings.no = no;
+            const settings = {
+                name: name,
+                no: no,
+                shiftType: sType,
+                startDay: cDay,
+                reminderOn: false
+            };
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             checkSetup();
-        } else alert("විස්තර පුරවන්න!");
+        } else alert("කරුණාකර නම සහ අංකය ඇතුළත් කරන්න!");
     }
 
     function editProfile() {
@@ -216,39 +256,14 @@
         }
     }
 
-    function toggleReminder() {
-        const isChecked = document.getElementById('reminderToggle').checked;
-        const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        settings.reminderOn = isChecked;
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        if (isChecked) {
-            if (Notification.permission !== "granted") {
-                Notification.requestPermission().then(p => { if (p === "granted") startReminderService(); else document.getElementById('reminderToggle').checked = false; });
-            } else startReminderService();
-        } else clearInterval(reminderInterval);
-    }
-
-    function startReminderService() {
-        if(reminderInterval) clearInterval(reminderInterval);
-        reminderInterval = setInterval(() => {
-            if (currentStatus === 'IN') return;
-            const now = new Date();
-            const info = calculateShiftForDate(now);
-            if (info.plan === "OFF") return;
-            const [expH, expM] = info.expected.split(':').map(Number);
-            const expTotal = expH * 60 + expM;
-            const nowTotal = now.getHours() * 60 + now.getMinutes();
-            if (expTotal - nowTotal === 5) sendNotification("Punch In Reminder ⏱️", `${info.plan} Shift එක තව විනාඩි 5 කින්.`);
-        }, 60000);
-    }
-
-    function sendNotification(t, b) {
-        if (Notification.permission === "granted") {
-            new Notification(t, { body: b });
-            new Audio('https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3').play().catch(() => {});
+    function resetSystem() {
+        if(confirm("මුළු ඇප් එකම Reset කරන්නද? ඔක්කොම දත්ත මැකී යනු ඇත!")) {
+            localStorage.clear();
+            location.reload();
         }
     }
 
+    // --- Core Logic Functions (Calculate, Punch, Render) ---
     function calculateShiftForDate(targetDate) {
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
         const type = settings.shiftType || 'GEN';
@@ -486,6 +501,32 @@
     }
 
     function clearMonthData() { if(confirm("මෙම මාසයේ දත්ත මකන්නද?")) { const m = document.getElementById('monthFilter').value; logs = logs.filter(l => l.month !== m); localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
+
+    function toggleReminder() {
+        const isChecked = document.getElementById('reminderToggle').checked;
+        const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+        settings.reminderOn = isChecked;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        if (isChecked) {
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then(p => { if (p === "granted") startReminderService(); else document.getElementById('reminderToggle').checked = false; });
+            } else startReminderService();
+        } else clearInterval(reminderInterval);
+    }
+
+    function startReminderService() {
+        if(reminderInterval) clearInterval(reminderInterval);
+        reminderInterval = setInterval(() => {
+            if (currentStatus === 'IN') return;
+            const now = new Date();
+            const info = calculateShiftForDate(now);
+            if (info.plan === "OFF") return;
+            const [expH, expM] = info.expected.split(':').map(Number);
+            const expTotal = expH * 60 + expM;
+            const nowTotal = now.getHours() * 60 + now.getMinutes();
+            if (expTotal - nowTotal === 5) sendNotification("Punch In Reminder ⏱️", `${info.plan} Shift එක තව විනාඩි 5 කින්.`);
+        }, 60000);
+    }
 
     window.onload = () => {
         const savedTheme = localStorage.getItem('theme_preference') || 'light';
