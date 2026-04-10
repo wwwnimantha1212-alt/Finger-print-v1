@@ -65,9 +65,9 @@
     <div class="card" style="margin-top: 50px; text-align: center;">
         <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">Setup Your Profile</div>
         <label class="setup-label">Full Name:</label>
-        <input type="text" id="setupName" placeholder="Ex: Nimantha Dilshan">
+        <input type="text" id="setupName" placeholder="Ex: Name">
         <label class="setup-label">Employee Number:</label>
-        <input type="text" id="setupNo" placeholder="Ex: 2468">
+        <input type="text" id="setupNo" placeholder="Ex: xxxx">
         <label class="setup-label">Default Shift Type:</label>
         <select id="setupShiftType" onchange="toggleCycleVisibility('setupShiftType', 'setup-cycle-box')">
             <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
@@ -407,7 +407,7 @@
             });
             else { let st = (sInfo.plan==="OFF"?"(OFF)":"(L)"); tableData.push([dStr + " " + st, sInfo.plan==="OFF"?"OFF-DAY":"LEAVE", "--", "0", "0", "0m"]); }
         }
-        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 45, theme: 'grid', styles: {fontSize: 8}, didDrawPage: (d) => { doc.setFontSize(10); doc.text("Developed by Nimantha Dilshan 2468", d.settings.margin.left, doc.internal.pageSize.height - 10); } });
+        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 45, theme: 'grid', styles: {fontSize: 8}, didDrawPage: (d) => { doc.setFontSize(10); doc.text("Developed by Nimantha Dilshan", d.settings.margin.left, doc.internal.pageSize.height - 10); } });
         doc.save(`Attendance_${settings.name}_${filter}.pdf`);
     }
 
