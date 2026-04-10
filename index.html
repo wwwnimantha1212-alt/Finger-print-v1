@@ -453,18 +453,34 @@
             else startReminderService();
         } else clearInterval(reminderInterval);
     }
+let lastNotifiedShift = ""; // මෙය script එකේ ඉහලින්ම දාන්න
 
-    function startReminderService() {
-        if(reminderInterval) clearInterval(reminderInterval);
-        reminderInterval = setInterval(() => {
-            if (currentStatus === 'IN') return;
-            const now = new Date(); const info = calculateShiftForDate(now); if (info.plan === "OFF") return;
-            const [exH, exM] = info.expected.split(':').map(Number);
-            if ((exH * 60 + exM) - (now.getHours() * 60 + now.getMinutes()) === 5) {
-                if (Notification.permission === "granted") new Notification("Shift Reminder", { body: `${info.plan} starts in 5 mins!` });
+function startReminderService() {
+    if(reminderInterval) clearInterval(reminderInterval);
+    reminderInterval = setInterval(() => {
+        if (currentStatus === 'IN') return;
+        
+        const now = new Date(); 
+        const info = calculateShiftForDate(now); 
+        if (info.plan === "OFF") return;
+
+        const [exH, exM] = info.expected.split(':').map(Number);
+        const diff = (exH * 60 + exM) - (now.getHours() * 60 + now.getMinutes());
+
+        // විනාඩි 0 ත් 5 ත් අතර නම් සහ අද දිනට තවම යවා නැත්නම්
+        if (diff > 0 && diff <= 5 && lastNotifiedShift !== info.plan + now.toDateString()) {
+            if (Notification.permission === "granted") {
+                new Notification("Shift Reminder", { 
+                    body: `${info.plan} starts in ${diff} mins!`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png'
+                });
+                lastNotifiedShift = info.plan + now.toDateString(); // නැවත නැවත යැවීම වැලැක්වීමට
             }
-        }, 60000);
-    }
+        }
+    }, 30000); // තත්පර 30කට වරක් පරීක්ෂා කරන්න
+}
+
+    
 
     window.onload = () => {
         const savedTheme = localStorage.getItem('theme_preference') || 'light';
