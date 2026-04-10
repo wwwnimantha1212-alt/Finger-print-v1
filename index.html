@@ -4,7 +4,7 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Log v43.9 - Nimantha Dilshan</title>
+    <title>Work Log v44.0 - Nimantha Dilshan</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -65,9 +65,9 @@
     <div class="card" style="margin-top: 50px; text-align: center;">
         <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">Setup Your Profile</div>
         <label class="setup-label">Full Name:</label>
-        <input type="text" id="setupName" placeholder="Ex: name">
+        <input type="text" id="setupName" placeholder="Ex: Nimantha Dilshan">
         <label class="setup-label">Employee Number:</label>
-        <input type="text" id="setupNo" placeholder="Ex: xxxx">
+        <input type="text" id="setupNo" placeholder="Ex: 2468">
         <label class="setup-label">Default Shift Type:</label>
         <select id="setupShiftType" onchange="toggleCycleVisibility('setupShiftType', 'setup-cycle-box')">
             <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
@@ -135,9 +135,9 @@
         
         <label class="setup-label">Shift Configuration:</label>
         <select id="editShiftType" onchange="toggleCycleVisibility('editShiftType', 'edit-cycle-box')">
-            <option value="GEN">General (M-F 5.30, Sat 1.30)</option>
-            <option value="12A">12 Hours A (Fixed)</option>
-            <option value="12B">12 Hours B (Rotary)</option>
+            <option value="GEN">General</option>
+            <option value="12A">12 Hours A</option>
+            <option value="12B">12 Hours B</option>
             <option value="8H">8 Hours (NEMO)</option>
         </select>
 
@@ -150,7 +150,7 @@
         </div>
 
         <div class="reminder-box" style="margin-top: 20px;">
-            <span style="font-size: 14px; font-weight: bold; color: var(--purple);">Shift Reminder (5 min)</span>
+            <span style="font-size: 14px; font-weight: bold; color: var(--purple);">Background Reminder</span>
             <label class="switch">
                 <input type="checkbox" id="reminderToggle" onchange="toggleReminder()">
                 <span class="slider"></span>
@@ -167,9 +167,7 @@
         <h3 style="text-align:center; margin:10px 0;">Late Balance</h3>
         <select id="lateMonthFilter" onchange="renderLateTracker()" style="margin-bottom:10px;"></select>
         <div id="lateStats" style="text-align:center; font-weight:bold; font-size:24px; margin:5px 0;">Balance: 60 min</div>
-        <div class="chart-container">
-            <canvas id="lateChart"></canvas>
-        </div>
+        <div class="chart-container"><canvas id="lateChart"></canvas></div>
         <div id="lateList" style="max-height:180px; overflow-y:auto; margin-top:15px;"></div>
     </div>
 </div>
@@ -181,30 +179,34 @@
         <div class="chart-container"><canvas id="workChart"></canvas></div>
         <select id="monthFilter" onchange="renderLogs()" style="margin-top:10px;"></select>
         <div class="summary-grid">
-            <div class="summary-item">Days Worked<br><b id="totalDays">0</b></div>
+            <div class="summary-item">Days<br><b id="totalDays">0</b></div>
             <div class="summary-item">Leaves<br><b id="totalLeaves">0</b></div>
             <div class="summary-item">Holidays<br><b id="totalHols">0</b></div>
             <div class="summary-item">Total OT<br><b id="finalOT">0</b></div>
         </div>
         <button class="btn-nav" style="background: #17a2b8; margin-bottom:10px;" onclick="generatePDF()">Download PDF Report</button>
         <div class="table-scroll-area"><table id="logTable"><thead><tr><th>Date</th><th>Shift</th><th>Time</th><th>Hrs</th><th>OT</th><th>Late</th></tr></thead><tbody></tbody></table></div>
-        <div style="margin-top: 20px; text-align:center;"><button onclick="clearMonthData()" style="color:var(--danger); font-size:12px; border:1px solid var(--danger); width:auto; padding:5px 15px; background:none;">🗑️ Clear Month</button> <button onclick="resetSystem()" style="color:#999; font-size:11px; background:none; border:none; margin-left:10px;">Reset All</button></div>
+        <div style="margin-top: 20px; text-align:center;"><button onclick="clearMonthData()" style="color:var(--danger); font-size:12px; border:1px solid var(--danger); width:auto; padding:5px 15px; background:none;">Clear Month</button> <button onclick="resetSystem()" style="color:#999; font-size:11px; background:none; border:none; margin-left:10px;">Reset All</button></div>
     </div>
 </div>
 
 <footer>Developed by <b>Nimantha Dilshan 2468</b></footer>
 
 <script>
-    
     const STORAGE_KEY = 'work_log_data_master';
     const STATUS_KEY = 'work_log_status_master';
     const SETTINGS_KEY = 'work_log_settings_master';
 
-    let lastNotifiedShift = ""; // මෙය script එකේ ඉහලින්ම දාන්න
     let logs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let currentStatus = localStorage.getItem(STATUS_KEY) || 'OUT';
     let charts = { work: null, late: null };
-    let reminderInterval = null;
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('SW Registered');
+        }).catch(err => console.log('SW Error', err));
+    }
 
     function checkSetup() {
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
@@ -213,16 +215,14 @@
         } else {
             document.getElementById('dispName').innerText = settings.name;
             document.getElementById('dispNo').innerText = "ID: #" + (settings.no || '0000');
-            // Load Edit Profile Inputs
             document.getElementById('editName').value = settings.name;
             document.getElementById('editNo').value = settings.no;
             document.getElementById('editShiftType').value = settings.shiftType || 'GEN';
             document.getElementById('editCycleDay').value = settings.startDay || '1';
             document.getElementById('reminderToggle').checked = settings.reminderOn || false;
             toggleCycleVisibility('editShiftType', 'edit-cycle-box');
-            
             showPage('home-page');
-            if(settings.reminderOn) startReminderService();
+            if(settings.reminderOn) startBackgroundSync();
             updateLiveStatus();
         }
     }
@@ -244,7 +244,7 @@
             };
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
             checkSetup();
-        } else alert("Details පුරවන්න!");
+        } else alert("නම සහ ID පුරවන්න!");
     }
 
     function saveEditProfile() {
@@ -258,9 +258,8 @@
         checkSetup();
     }
 
-    function resetSystem() { if(confirm("පද්ධතිය මුළුමනින්ම Reset කරන්නද?")) { localStorage.clear(); location.reload(); } }
+    function resetSystem() { if(confirm("සම්පූර්ණයෙන්ම මකන්නද?")) { localStorage.clear(); location.reload(); } }
 
-    // --- Time Calculation & UI Update ---
     function updateLiveStatus() {
         const info = calculateShiftForDate(new Date());
         document.getElementById('shift-detector').innerText = `Plan: ${info.plan}`;
@@ -408,7 +407,7 @@
             });
             else { let st = (sInfo.plan==="OFF"?"(OFF)":"(L)"); tableData.push([dStr + " " + st, sInfo.plan==="OFF"?"OFF-DAY":"LEAVE", "--", "0", "0", "0m"]); }
         }
-        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 45, theme: 'grid', styles: {fontSize: 8}, didDrawPage: (d) => { doc.setFontSize(10); doc.text("Developed by Nimantha Dilshan", d.settings.margin.left, doc.internal.pageSize.height - 10); } });
+        doc.autoTable({ head: [['Date', 'Shift', 'Time', 'Hrs', 'OT', 'Late']], body: tableData, startY: 45, theme: 'grid', styles: {fontSize: 8}, didDrawPage: (d) => { doc.setFontSize(10); doc.text("Developed by Nimantha Dilshan 2468", d.settings.margin.left, doc.internal.pageSize.height - 10); } });
         doc.save(`Attendance_${settings.name}_${filter}.pdf`);
     }
 
@@ -443,46 +442,34 @@
         document.getElementById('lateMonthFilter').innerHTML = options;
     }
 
-    function clearMonthData() { if(confirm("Clear month data?")) { const m = document.getElementById('monthFilter').value; logs = logs.filter(l => l.month !== m); localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
+    function clearMonthData() { if(confirm("Clear data?")) { const m = document.getElementById('monthFilter').value; logs = logs.filter(l => l.month !== m); localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); renderLogs(); initMonthFilters(); } }
 
+    // --- Background Notification Logic ---
     function toggleReminder() {
         const isChecked = document.getElementById('reminderToggle').checked;
         const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
         settings.reminderOn = isChecked;
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
         if (isChecked) {
-            if (Notification.permission !== "granted") Notification.requestPermission().then(p => { if (p === "granted") startReminderService(); else document.getElementById('reminderToggle').checked = false; });
-            else startReminderService();
-        } else clearInterval(reminderInterval);
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") startBackgroundSync();
+                else document.getElementById('reminderToggle').checked = false;
+            });
+        }
     }
 
-
-function startReminderService() {
-    if(reminderInterval) clearInterval(reminderInterval);
-    reminderInterval = setInterval(() => {
-        if (currentStatus === 'IN') return;
-        
-        const now = new Date(); 
-        const info = calculateShiftForDate(now); 
-        if (info.plan === "OFF") return;
-
-        const [exH, exM] = info.expected.split(':').map(Number);
-        const diff = (exH * 60 + exM) - (now.getHours() * 60 + now.getMinutes());
-
-        // විනාඩි 0 ත් 5 ත් අතර නම් සහ අද දිනට තවම යවා නැත්නම්
-        if (diff > 0 && diff <= 5 && lastNotifiedShift !== info.plan + now.toDateString()) {
-            if (Notification.permission === "granted") {
-                new Notification("Shift Reminder", { 
-                    body: `${info.plan} starts in ${diff} mins!`,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png'
-                });
-                lastNotifiedShift = info.plan + now.toDateString(); // නැවත නැවත යැවීම වැලැක්වීමට
-            }
+    function startBackgroundSync() {
+        // Send settings to Service Worker
+        const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        const status = localStorage.getItem(STATUS_KEY);
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'SET_CONFIG',
+                settings: settings,
+                status: status
+            });
         }
-    }, 30000); // තත්පර 30කට වරක් පරීක්ෂා කරන්න
-}
-
-    
+    }
 
     window.onload = () => {
         const savedTheme = localStorage.getItem('theme_preference') || 'light';
